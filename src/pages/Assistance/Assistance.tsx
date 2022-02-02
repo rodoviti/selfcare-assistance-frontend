@@ -7,6 +7,7 @@ import { userSelectors } from '@pagopa/selfcare-common-frontend/redux/slices/use
 import { AppError } from '@pagopa/selfcare-common-frontend/redux/slices/appStateSlice';
 import useLoading from '@pagopa/selfcare-common-frontend/hooks/useLoading';
 import { appStateActions } from '@pagopa/selfcare-common-frontend/redux/slices/appStateSlice';
+import { useUnloadEventInterceptor, useUnloadEventOnExit, useUnloadEventInterceptorAndActivate } from '@pagopa/selfcare-common-frontend/hooks/useUnloadEventInterceptor';
 import withLogin from '@pagopa/selfcare-common-frontend/decorators/withLogin';
 import { useAppSelector } from '../../redux/hooks';
 import { saveAssistance } from '../../services/assistanceService';
@@ -24,6 +25,9 @@ export type AssistanceRequest = {
 };
 
 const CustomTextField = styled(TextField)({
+  "& .MuiInputBase-root.Mui-disabled:before": {
+    borderBottomStyle: "solid"
+  },
   '.MuiInputLabel-asterisk': {
     display: 'none',
   },
@@ -51,6 +55,9 @@ const CustomTextField = styled(TextField)({
       color: '#5C6F82',
       opacity: '1',
     },
+    '&.Mui-disabled':{
+      '-webkit-text-fill-color':'#5C6F82'
+    },
   },
 });
 const CustomTextArea = styled(TextField)({
@@ -59,16 +66,21 @@ const CustomTextArea = styled(TextField)({
     fontWeight: '400',
     '&::placeholder': {
       fontStyle: 'italic',
-      color: '      #5C6F82',
+      color: '#5C6F82',
       opacity: '1',
     },
   },
 });
 
 const requiredError = 'Required';
+const emailRegexp = new RegExp('^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$');
 
 const Assistance = () => {
   const [viewThxPage, setThxPage] = useState(false);
+  
+  useUnloadEventInterceptorAndActivate('Vuoi davvero uscire?','Se esci, la richiesta di assistenza andrà persa.');
+  const onExit = useUnloadEventOnExit();
+  const { unregisterUnloadEvent } = useUnloadEventInterceptor();
 
   const dispatch = useAppDispatch();
   const addError = (error: AppError) => dispatch(appStateActions.addError(error));
@@ -81,13 +93,21 @@ const Assistance = () => {
       Object.entries({
         messageObject: !values.messageObject ? requiredError : undefined,
         message: !values.message ? requiredError : undefined,
+        email: !values.email
+          ? requiredError
+          : !emailRegexp.test(values.email)
+          ? 'L’indirizzo email non è valido'
+          : undefined,
+        emailConfirm: !values.emailConfirm
+          ? requiredError
+          : values.emailConfirm !== values.email
+          ? "L’indirizzo email di conferma non è uguale all'indirizzo email inserito"
+          : undefined,
       }).filter(([_key, value]) => value)
     );
 
   const formik = useFormik<AssistanceRequest>({
     initialValues: {
-      name: user?.name ?? '',
-      surname: user?.surname ?? '',
       email: user?.email ?? '',
       emailConfirm: user?.email ?? '',
       message: '',
@@ -98,6 +118,7 @@ const Assistance = () => {
       setLoading(true);
       saveAssistance(values)
         .then(() => {
+          unregisterUnloadEvent();
           setThxPage(true);
         })
         .catch((reason) =>
@@ -178,10 +199,9 @@ const Assistance = () => {
             titleFontSize="48px"
           />
           <form onSubmit={formik.handleSubmit}>
-            {/* section visible to logged user */}
             <Box>
-              <Grid container direction="column" >
-                <Grid container item>
+              <Grid container direction="column">
+                <Grid container item spacing={3}>
                   <Grid item xs={6} sx={{ height: '75px' }}>
                     <CustomTextField
                       className="messageObject"
@@ -193,14 +213,32 @@ const Assistance = () => {
                     />
                   </Grid>
                   <Grid item xs={12} mb={5}>
-                    <Box sx={{marginTop:'-17px'}}>
-                      <Typography variant="body2" sx={{ fontSize: '14px', color:'#5A768A' }}>
+                    <Box sx={{ marginTop: '-17px' }}>
+                      <Typography variant="body2" sx={{ fontSize: '14px', color: '#5A768A' }}>
                         Indicaci l’argomento della tua richiesta
                       </Typography>
                     </Box>
                   </Grid>
                 </Grid>
-                <Grid container item>
+                <Grid container item spacing={3} mb={8}>
+                  <Grid item xs={6} mb={4} sx={{ height: '75px' }}>
+                    <CustomTextField
+                      disabled ={user?.email ? true : false}
+                      {...baseTextFieldProps('email', 'Email', 'Indirizzo e-mail istituzionale')}
+                    />
+                  </Grid>
+                  { !user?.email && <Grid item xs={6} mb={4} sx={{ height: '75px' }}>
+                    <CustomTextField
+                      {...baseTextFieldProps(
+                        'emailConfirm',
+                        'Conferma indirizzo e-mail istituzionale',
+                        'Conferma indirizzo e-mail istituzionale'
+                      )}
+                      inputProps={{ readOnly: user?.email ? true : false }}
+                    />
+                  </Grid>}
+                </Grid>
+                <Grid container item spacing={3}>
                   <Grid item xs={10}>
                     <Typography variant="h3" sx={{ fontSize: '14px', color: '#5A768A' }} mb={2}>
                       Testo del messaggio
@@ -227,8 +265,7 @@ const Assistance = () => {
                   sx={{ width: '100%' }}
                   color="primary"
                   variant="outlined"
-                  type="submit"
-                  onClick={() => window.location.assign(document.referrer)}
+                  onClick={() => onExit(() => window.location.assign(document.referrer))}
                 >
                   Indietro
                 </Button>
