@@ -15,6 +15,7 @@ import {
 import withLogin from '@pagopa/selfcare-common-frontend/decorators/withLogin';
 import { uniqueId } from 'lodash';
 import { trackEvent } from '@pagopa/selfcare-common-frontend/services/analyticsService';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '../../redux/hooks';
 import { saveAssistance } from '../../services/assistanceService';
 import { LOADING_TASK_SAVE_ASSISTANCE } from '../../utils/constants';
@@ -61,8 +62,8 @@ const CustomTextField = styled(TextField)({
       color: '#5C6F82',
       opacity: '1',
     },
-    '&.Mui-disabled':{
-      WebkitTextFillColor:'#5C6F82'
+    '&.Mui-disabled': {
+      WebkitTextFillColor: '#5C6F82',
     },
   },
 });
@@ -82,11 +83,13 @@ const requiredError = 'Required';
 const emailRegexp = new RegExp('^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$');
 
 const Assistance = () => {
+  const { t } = useTranslation();
+
   const [viewThxPage, setThxPage] = useState(false);
 
   useUnloadEventInterceptorAndActivate(
-    'Vuoi davvero uscire?',
-    'Se esci, la richiesta di assistenza andrà persa.'
+    t('assistancePageForm.unloadEvent.title'),
+    t('assistancePageForm.unloadEvent.description')
   );
   const onExit = useUnloadEventOnExit();
   const { unregisterUnloadEvent } = useUnloadEventInterceptor();
@@ -99,10 +102,10 @@ const Assistance = () => {
   const requestIdRef = useRef<string>();
 
   useEffect(() => {
-    if(!requestIdRef.current){
+    if (!requestIdRef.current) {
       // eslint-disable-next-line functional/immutable-data
       requestIdRef.current = uniqueId();
-      trackEvent('CUSTOMER_CARE_CONTACT', { request_id : requestIdRef.current });
+      trackEvent('CUSTOMER_CARE_CONTACT', { request_id: requestIdRef.current });
     }
   }, []);
 
@@ -114,12 +117,12 @@ const Assistance = () => {
         email: !values.email
           ? requiredError
           : !emailRegexp.test(values.email)
-          ? 'L’indirizzo email non è valido'
+          ? t('assistancePageForm.dataValidate.invalidEmail')
           : undefined,
         emailConfirm: !values.emailConfirm
           ? requiredError
           : values.emailConfirm !== values.email
-          ? "L’indirizzo email di conferma non è uguale all'indirizzo email inserito"
+          ? t('assistancePageForm.dataValidate.notEqualConfirmEmail')
           : undefined,
       }).filter(([_key, value]) => value)
     );
@@ -138,19 +141,18 @@ const Assistance = () => {
         .then(() => {
           unregisterUnloadEvent();
           setThxPage(true);
-          trackEvent('CUSTOMER_CARE_CONTACT_SUCCESS', { request_id : requestIdRef.current });
+          trackEvent('CUSTOMER_CARE_CONTACT_SUCCESS', { request_id: requestIdRef.current });
         })
-        .catch((reason) =>
-          {
-            trackEvent('CUSTOMER_CARE_CONTACT_FAILURE', { request_id : requestIdRef.current });
-            addError({
+        .catch((reason) => {
+          trackEvent('CUSTOMER_CARE_CONTACT_FAILURE', { request_id: requestIdRef.current });
+          addError({
             id: 'SAVE_ASSISTANCE',
             blocking: false,
             error: reason,
             techDescription: `An error occurred while saving assistance form`,
             toNotify: false,
-          });}
-        )
+          });
+        })
         .finally(() => setLoading(false));
     },
   });
@@ -211,8 +213,8 @@ const Assistance = () => {
       {!viewThxPage ? (
         <Box px={24} my={13}>
           <TitleBox
-            title="Assistenza"
-            subTitle="Come possiamo aiutarti? Compila il modulo e invialo online, ti ricontatteremo al più presto."
+            title={t('assistancePageForm.title')}
+            subTitle={t('assistancePageForm.subTitle')}
             mbTitle={1}
             mbSubTitle={7}
             variantTitle="h1"
@@ -228,15 +230,15 @@ const Assistance = () => {
                       className="messageObject"
                       {...baseTextFieldProps(
                         'messageObject',
-                        'Oggetto del messaggio',
-                        'Oggetto del messaggio'
+                        t('assistancePageForm.messageObject.label'),
+                        t('assistancePageForm.messageObject.placeholder')
                       )}
                     />
                   </Grid>
                   <Grid item xs={12} mb={5}>
                     <Box sx={{ marginTop: '-17px' }}>
                       <Typography variant="body2" sx={{ fontSize: '14px', color: '#5A768A' }}>
-                        Indicaci l’argomento della tua richiesta
+                        {t('assistancePageForm.messageObject.helperText')}
                       </Typography>
                     </Box>
                   </Grid>
@@ -245,7 +247,11 @@ const Assistance = () => {
                   <Grid item xs={6} mb={4} sx={{ height: '75px' }}>
                     <CustomTextField
                       disabled={user?.email ? true : false}
-                      {...baseTextFieldProps('email', 'Email', 'Indirizzo e-mail istituzionale')}
+                      {...baseTextFieldProps(
+                        'email',
+                        t('assistancePageForm.email.label'),
+                        t('assistancePageForm.email.placeholder')
+                      )}
                     />
                   </Grid>
                   {!user?.email && (
@@ -253,8 +259,8 @@ const Assistance = () => {
                       <CustomTextField
                         {...baseTextFieldProps(
                           'emailConfirm',
-                          'Conferma indirizzo e-mail istituzionale',
-                          'Conferma indirizzo e-mail istituzionale'
+                          t('assistancePageForm.confirmEmail.label'),
+                          t('assistancePageForm.confirmEmail.placeholder')
                         )}
                         inputProps={{ readOnly: user?.email ? true : false }}
                       />
@@ -264,18 +270,18 @@ const Assistance = () => {
                 <Grid container item spacing={3}>
                   <Grid item xs={10}>
                     <Typography variant="h3" sx={{ fontSize: '14px', color: '#5A768A' }} mb={2}>
-                      Testo del messaggio
+                      {t('assistancePageForm.messageTextArea.typography')}
                     </Typography>
                     <CustomTextArea
                       {...baseTextAreaProps(
                         'message',
                         4,
-                        'Descrivi qui il motivo della tua richiesta di assistenza',
+                        t('assistancePageForm.messageTextArea.placeholder'),
                         200
                       )}
                     />
                     <Typography variant="body2" sx={{ fontSize: '14px' }} mt={1}>
-                      Max 200 caratteri
+                      {t('assistancePageForm.messageTextArea.allowedLength')}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -290,7 +296,7 @@ const Assistance = () => {
                   variant="outlined"
                   onClick={() => onExit(() => window.location.assign(document.referrer))}
                 >
-                  Indietro
+                  {t('assistancePageForm.backButton')}
                 </Button>
               </Grid>
               <Grid item xs={3}>
@@ -301,7 +307,7 @@ const Assistance = () => {
                   variant="contained"
                   type="submit"
                 >
-                  Invia
+                  {t('assistancePageForm.confirmButton')}
                 </Button>
               </Grid>
             </Grid>
@@ -309,9 +315,8 @@ const Assistance = () => {
         </Box>
       ) : (
         <ThankyouPage
-          title="Abbiamo ricevuto la tua richiesta"
-          description="Ti risponderemo al più presto al tuo indirizzo e-mail.
-          Grazie per averci contattato."
+          title={t('thankyouPage.title')}
+          description={t('thankyouPage.description')}
           onAction={() => window.location.assign(document.referrer)}
         />
       )}
