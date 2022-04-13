@@ -12,10 +12,10 @@ import {
   useUnloadEventOnExit,
   useUnloadEventInterceptorAndActivate,
 } from '@pagopa/selfcare-common-frontend/hooks/useUnloadEventInterceptor';
-import withLogin from '@pagopa/selfcare-common-frontend/decorators/withLogin';
 import { uniqueId } from 'lodash';
 import { trackEvent } from '@pagopa/selfcare-common-frontend/services/analyticsService';
 import { useTranslation } from 'react-i18next';
+import withLogin from '@pagopa/selfcare-common-frontend/decorators/withLogin';
 import { useAppSelector } from '../../redux/hooks';
 import { saveAssistance } from '../../services/assistanceService';
 import { LOADING_TASK_SAVE_ASSISTANCE } from '../../utils/constants';
