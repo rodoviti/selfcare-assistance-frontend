@@ -11,6 +11,7 @@ import reportWebVitals from './reportWebVitals';
 import { store } from './redux/store';
 import { MOCK_USER } from './utils/constants';
 import { ENV } from './utils/env';
+import './locale';
 
 // eslint-disable-next-line functional/immutable-data
 CONFIG.MOCKS.MOCK_USER = MOCK_USER;
@@ -20,14 +21,15 @@ CONFIG.URL_FE.LOGIN = `${ENV.URL_FE.LOGIN}?onSuccess=assistenza`;
 CONFIG.URL_FE.LOGOUT = ENV.URL_FE.LOGOUT;
 // eslint-disable-next-line functional/immutable-data
 CONFIG.URL_FE.ASSISTANCE = '/assistance';
+import './consentAndAnalyticsConfiguration.ts';
 
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <App />
-        </ThemeProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
     </Provider>
   </React.StrictMode>,
   document.getElementById('root')

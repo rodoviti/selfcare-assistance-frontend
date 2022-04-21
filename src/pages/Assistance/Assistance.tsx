@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Button, Grid, TextField, Typography } from '@mui/material';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Button, Divider, Grid, TextField, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { styled } from '@mui/system';
 import TitleBox from '@pagopa/selfcare-common-frontend/components/TitleBox';
@@ -7,7 +7,14 @@ import { userSelectors } from '@pagopa/selfcare-common-frontend/redux/slices/use
 import { AppError } from '@pagopa/selfcare-common-frontend/redux/slices/appStateSlice';
 import useLoading from '@pagopa/selfcare-common-frontend/hooks/useLoading';
 import { appStateActions } from '@pagopa/selfcare-common-frontend/redux/slices/appStateSlice';
-import { useUnloadEventInterceptor, useUnloadEventOnExit, useUnloadEventInterceptorAndActivate } from '@pagopa/selfcare-common-frontend/hooks/useUnloadEventInterceptor';
+import {
+  useUnloadEventInterceptor,
+  useUnloadEventOnExit,
+  useUnloadEventInterceptorAndActivate,
+} from '@pagopa/selfcare-common-frontend/hooks/useUnloadEventInterceptor';
+import { uniqueId } from 'lodash';
+import { trackEvent } from '@pagopa/selfcare-common-frontend/services/analyticsService';
+import { useTranslation } from 'react-i18next';
 import withLogin from '@pagopa/selfcare-common-frontend/decorators/withLogin';
 import { useAppSelector } from '../../redux/hooks';
 import { saveAssistance } from '../../services/assistanceService';
@@ -25,8 +32,8 @@ export type AssistanceRequest = {
 };
 
 const CustomTextField = styled(TextField)({
-  "& .MuiInputBase-root.Mui-disabled:before": {
-    borderBottomStyle: "solid"
+  '& .MuiInputBase-root.Mui-disabled:before': {
+    borderBottomStyle: 'solid',
   },
   '.MuiInputLabel-asterisk': {
     display: 'none',
@@ -55,17 +62,17 @@ const CustomTextField = styled(TextField)({
       color: '#5C6F82',
       opacity: '1',
     },
-    '&.Mui-disabled':{
-      '-webkit-text-fill-color':'#5C6F82'
+    '&.Mui-disabled': {
+      WebkitTextFillColor: '#5C6F82',
     },
   },
 });
 const CustomTextArea = styled(TextField)({
   textarea: {
     fontSize: '16px',
-    fontWeight: '400',
+    fontWeight: '600',
     '&::placeholder': {
-      fontStyle: 'italic',
+      fontStyle: 'normal',
       color: '#5C6F82',
       opacity: '1',
     },
@@ -76,9 +83,14 @@ const requiredError = 'Required';
 const emailRegexp = new RegExp('^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$');
 
 const Assistance = () => {
+  const { t } = useTranslation();
+
   const [viewThxPage, setThxPage] = useState(false);
-  
-  useUnloadEventInterceptorAndActivate('Vuoi davvero uscire?','Se esci, la richiesta di assistenza andrà persa.');
+
+  useUnloadEventInterceptorAndActivate(
+    t('assistancePageForm.unloadEvent.title'),
+    t('assistancePageForm.unloadEvent.description')
+  );
   const onExit = useUnloadEventOnExit();
   const { unregisterUnloadEvent } = useUnloadEventInterceptor();
 
@@ -87,6 +99,15 @@ const Assistance = () => {
   const setLoading = useLoading(LOADING_TASK_SAVE_ASSISTANCE);
 
   const user = useAppSelector(userSelectors.selectLoggedUser);
+  const requestIdRef = useRef<string>();
+
+  useEffect(() => {
+    if (!requestIdRef.current) {
+      // eslint-disable-next-line functional/immutable-data
+      requestIdRef.current = uniqueId();
+      trackEvent('CUSTOMER_CARE_CONTACT', { request_id: requestIdRef.current });
+    }
+  }, []);
 
   const validate = (values: Partial<AssistanceRequest>) =>
     Object.fromEntries(
@@ -96,12 +117,12 @@ const Assistance = () => {
         email: !values.email
           ? requiredError
           : !emailRegexp.test(values.email)
-          ? 'L’indirizzo email non è valido'
+          ? t('assistancePageForm.dataValidate.invalidEmail')
           : undefined,
         emailConfirm: !values.emailConfirm
           ? requiredError
           : values.emailConfirm !== values.email
-          ? "L’indirizzo email di conferma non è uguale all'indirizzo email inserito"
+          ? t('assistancePageForm.dataValidate.notEqualConfirmEmail')
           : undefined,
       }).filter(([_key, value]) => value)
     );
@@ -120,16 +141,18 @@ const Assistance = () => {
         .then(() => {
           unregisterUnloadEvent();
           setThxPage(true);
+          trackEvent('CUSTOMER_CARE_CONTACT_SUCCESS', { request_id: requestIdRef.current });
         })
-        .catch((reason) =>
+        .catch((reason) => {
+          trackEvent('CUSTOMER_CARE_CONTACT_FAILURE', { request_id: requestIdRef.current });
           addError({
             id: 'SAVE_ASSISTANCE',
             blocking: false,
             error: reason,
             techDescription: `An error occurred while saving assistance form`,
-            toNotify: true,
-          })
-        )
+            toNotify: false,
+          });
+        })
         .finally(() => setLoading(false));
     },
   });
@@ -149,9 +172,9 @@ const Assistance = () => {
       error: isError,
       helperText: isError ? formik.errors[field] : undefined,
       required: true,
-      variant: 'standard' as const,
+      variant: 'outlined' as const,
       onChange: formik.handleChange,
-      sx: { width: '100%' },
+      sx: { width: '100%', '.disabled': { color: 'red' } },
       InputProps: {
         style: {
           fontSize: '16px',
@@ -190,105 +213,125 @@ const Assistance = () => {
       {!viewThxPage ? (
         <Box px={24} my={13}>
           <TitleBox
-            title="Assistenza"
-            subTitle="Come possiamo aiutarti? Compila il modulo e invialo online, ti ricontatteremo al più presto."
+            title={t('assistancePageForm.title')}
+            subTitle={t('assistancePageForm.subTitle')}
             mbTitle={1}
-            mbSubTitle={7}
+            mbSubTitle={4}
             variantTitle="h1"
             variantSubTitle="h5"
             titleFontSize="48px"
           />
-          <form onSubmit={formik.handleSubmit}>
-            <Box>
+          <Box
+            sx={{
+              boxShadow:
+                '0px 8px 10px -5px rgba(0, 43, 85, 0.1), 0px 16px 24px 2px rgba(0, 43, 85, 0.05), 0px 6px 30px 5px rgba(0, 43, 85, 0.1)',
+              borderRadius: '4px',
+              p: 3,
+            }}
+          >
+            <form onSubmit={formik.handleSubmit}>
               <Grid container direction="column">
-                <Grid container item spacing={3}>
-                  <Grid item xs={6} sx={{ height: '75px' }}>
+                <Grid container item>
+                  <Grid item xs={12} sx={{ height: '75px' }} pb={2}>
                     <CustomTextField
                       className="messageObject"
                       {...baseTextFieldProps(
                         'messageObject',
-                        'Oggetto del messaggio',
-                        'Oggetto del messaggio'
+                        t('assistancePageForm.messageObject.label'),
+                        t('assistancePageForm.messageObject.placeholder')
                       )}
                     />
                   </Grid>
-                  <Grid item xs={12} mb={5}>
-                    <Box sx={{ marginTop: '-17px' }}>
+                  <Grid item xs={12} mb={3} pb={2}>
+                    <Box sx={{ marginTop: '-12px', marginLeft: '13px' }}>
                       <Typography variant="body2" sx={{ fontSize: '14px', color: '#5A768A' }}>
-                        Indicaci l’argomento della tua richiesta
+                        {t('assistancePageForm.messageObject.helperText')}
                       </Typography>
                     </Box>
                   </Grid>
                 </Grid>
-                <Grid container item spacing={3} mb={8}>
-                  <Grid item xs={6} mb={4} sx={{ height: '75px' }}>
+                <Grid container item spacing={2}>
+                  <Grid item xs={!user?.email ? 6 : 12} mb={4} sx={{ height: '75px' }}>
                     <CustomTextField
-                      disabled ={user?.email ? true : false}
-                      {...baseTextFieldProps('email', 'Email', 'Indirizzo e-mail istituzionale')}
+                      disabled={user?.email ? true : false}
+                      {...baseTextFieldProps(
+                        'email',
+                        t('assistancePageForm.email.label'),
+                        t('assistancePageForm.email.placeholder')
+                      )}
                     />
                   </Grid>
-                  { !user?.email && <Grid item xs={6} mb={4} sx={{ height: '75px' }}>
-                    <CustomTextField
-                      {...baseTextFieldProps(
-                        'emailConfirm',
-                        'Conferma indirizzo e-mail istituzionale',
-                        'Conferma indirizzo e-mail istituzionale'
-                      )}
-                      inputProps={{ readOnly: user?.email ? true : false }}
-                    />
-                  </Grid>}
+                  {!user?.email && (
+                    <Grid item xs={6} mb={4} sx={{ height: '75px' }}>
+                      <CustomTextField
+                        {...baseTextFieldProps(
+                          'emailConfirm',
+                          t('assistancePageForm.confirmEmail.label'),
+                          t('assistancePageForm.confirmEmail.placeholder')
+                        )}
+                        inputProps={{ readOnly: user?.email ? true : false }}
+                      />
+                    </Grid>
+                  )}
                 </Grid>
                 <Grid container item spacing={3}>
-                  <Grid item xs={10}>
+                  <Grid item xs={12}>
                     <Typography variant="h3" sx={{ fontSize: '14px', color: '#5A768A' }} mb={2}>
-                      Testo del messaggio
+                      {t('assistancePageForm.messageTextArea.typography')}
                     </Typography>
                     <CustomTextArea
                       {...baseTextAreaProps(
                         'message',
-                        4,
-                        'Descrivi qui il motivo della tua richiesta di assistenza',
+                        3,
+                        t('assistancePageForm.messageTextArea.placeholder'),
                         200
                       )}
                     />
-                    <Typography variant="body2" sx={{ fontSize: '14px' }} mt={1}>
-                      Max 200 caratteri
+                    <Typography
+                      variant="body2"
+                      sx={{ fontSize: '14px', marginLeft: '13px' }}
+                      mt={1}
+                    >
+                      {t('assistancePageForm.messageTextArea.allowedLength')}
                     </Typography>
                   </Grid>
                 </Grid>
+                <Grid item py={3}>
+                  <Divider />
+                </Grid>
               </Grid>
-            </Box>
 
-            <Grid container spacing={2} mt={10}>
-              <Grid item xs={3}>
-                <Button
-                  sx={{ width: '100%' }}
-                  color="primary"
-                  variant="outlined"
-                  onClick={() => onExit(() => window.location.assign(document.referrer))}
-                >
-                  Indietro
-                </Button>
+              <Grid container spacing={2}>
+                <Grid item xs={3}>
+                  <Button
+                    disabled={!formik.dirty || !formik.isValid}
+                    color="primary"
+                    variant="contained"
+                    type="submit"
+                  >
+                    {t('assistancePageForm.confirmButton')}
+                  </Button>
+                </Grid>
               </Grid>
-              <Grid item xs={3}>
-                <Button
-                  disabled={!formik.dirty || !formik.isValid}
-                  sx={{ width: '100%' }}
-                  color="primary"
-                  variant="contained"
-                  type="submit"
-                >
-                  Invia
-                </Button>
-              </Grid>
+            </form>
+          </Box>
+          <Grid container mt={4}>
+            <Grid item xs={3}>
+              <Button
+                sx={{ fontWeight: 700 }}
+                color="primary"
+                variant="outlined"
+                onClick={() => onExit(() => window.location.assign(document.referrer))}
+              >
+                {t('assistancePageForm.backButton')}
+              </Button>
             </Grid>
-          </form>
+          </Grid>
         </Box>
       ) : (
         <ThankyouPage
-          title="Abbiamo ricevuto la tua richiesta"
-          description="Ti risponderemo al più presto al tuo indirizzo e-mail istituzionale.
-          Grazie per averci contattato."
+          title={t('thankyouPage.title')}
+          description={t('thankyouPage.description')}
           onAction={() => window.location.assign(document.referrer)}
         />
       )}
