@@ -12,11 +12,13 @@ export default function ThankyouPage({ title, description, onAction }: Props) {
   const { t } = useTranslation();
   return (
     <EndingPage
-      icon={<CheckIllustrationIcon />}
+      icon={<CheckIllustrationIcon sx={{ width: '70px', height: '70px' }} />}
       title={title}
       description={description}
       onButtonClick={onAction}
       buttonLabel={t('thankyouPage.buttonLabel')}
+      variantTitle={'h4'}
+      variantDescription={'body1'}
     />
   );
 }
