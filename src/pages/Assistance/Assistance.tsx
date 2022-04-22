@@ -211,7 +211,13 @@ const Assistance = () => {
   return (
     <React.Fragment>
       {!viewThxPage ? (
-        <Grid container item justifyContent="center" display="flex">
+        <Grid
+          container
+          item
+          justifyContent="center"
+          display="flex"
+          sx={{ backgroundColor: 'rgb(242, 242, 242)' }}
+        >
           <Box px={24} my={13}>
             <TitleBox
               title={t('assistancePageForm.title')}
@@ -228,6 +234,7 @@ const Assistance = () => {
                   '0px 8px 10px -5px rgba(0, 43, 85, 0.1), 0px 16px 24px 2px rgba(0, 43, 85, 0.05), 0px 6px 30px 5px rgba(0, 43, 85, 0.1)',
                 borderRadius: '4px',
                 p: 3,
+                backgroundColor: 'white',
               }}
             >
               <form onSubmit={formik.handleSubmit}>
