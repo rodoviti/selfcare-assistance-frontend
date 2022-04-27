@@ -44,26 +44,28 @@ const CustomTextField = styled(TextField)({
       color: 'green',
     },
   },
+  '.MuiInputLabel-root.Mui-disabled': {
+    color: '#A2ADB8',
+  },
   '.MuiInputLabel-root.Mui-focused': {
-    color: '#5C6F82',
+    // color: '#5C6F82',
     fontWeight: '700',
   },
   '.MuiInputLabel-root': {
     color: '#5C6F82',
-    fontSize: '14px',
-    fontWeight: '700',
+    fontSize: '16px',
+    fontWeight: '600',
   },
   input: {
-    color: '#17324D',
-    fontSize: '20px',
-    fontWeight: '700',
-    // textTransform: "capitalize",
+    color: 'black',
+    fontSize: '16px',
+    fontWeight: '600',
     '&::placeholder': {
       color: '#5C6F82',
       opacity: '1',
     },
     '&.Mui-disabled': {
-      WebkitTextFillColor: '#5C6F82',
+      WebkitTextFillColor: '#A2ADB8',
     },
   },
 });
@@ -182,7 +184,6 @@ const Assistance = () => {
           lineHeight: '24px',
           color: '#5C6F82',
           textAlign: 'start' as const,
-          paddingLeft: '16px',
         },
       },
     };
