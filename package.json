@@ -1,6 +1,6 @@
 {
   "name": "selfcare-assistance-frontend",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "homepage": "/assistenza",
   "private": true,
   "dependencies": {
