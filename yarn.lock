@@ -1880,7 +1880,7 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@pagopa/mui-italia@0.6.28", "@pagopa/mui-italia@^0.6.28":
+"@pagopa/mui-italia@^0.6.28":
   version "0.6.28"
   resolved "https://registry.yarnpkg.com/@pagopa/mui-italia/-/mui-italia-0.6.28.tgz#32fc23af814f21425e3af3dbec589bfd03a63f4f"
   integrity sha512-6/ZcuvF/cG3YClXQGWB+3Z0tude3uqWrmliLYmNckUExvZdlq+uobEkVMQDXCPdljGVuVifQ+a0DNaAC2cR3ng==
