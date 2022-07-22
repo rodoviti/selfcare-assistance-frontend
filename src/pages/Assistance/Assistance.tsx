@@ -10,7 +10,6 @@ import { appStateActions } from '@pagopa/selfcare-common-frontend/redux/slices/a
 import {
   useUnloadEventInterceptor,
   useUnloadEventOnExit,
-  useUnloadEventInterceptorAndActivate,
 } from '@pagopa/selfcare-common-frontend/hooks/useUnloadEventInterceptor';
 import { uniqueId } from 'lodash';
 import { trackEvent } from '@pagopa/selfcare-common-frontend/services/analyticsService';
@@ -89,12 +88,8 @@ const Assistance = () => {
 
   const [viewThxPage, setThxPage] = useState(false);
 
-  useUnloadEventInterceptorAndActivate(
-    t('assistancePageForm.unloadEvent.title'),
-    t('assistancePageForm.unloadEvent.description')
-  );
   const onExit = useUnloadEventOnExit();
-  const { unregisterUnloadEvent } = useUnloadEventInterceptor();
+  const { registerUnloadEvent, unregisterUnloadEvent } = useUnloadEventInterceptor();
 
   const dispatch = useAppDispatch();
   const addError = (error: AppError) => dispatch(appStateActions.addError(error));
@@ -159,6 +154,17 @@ const Assistance = () => {
         .finally(() => setLoading(false));
     },
   });
+
+  useEffect(() => {
+    if (formik.dirty) {
+      registerUnloadEvent(
+        t('assistancePageForm.unloadEvent.title'),
+        t('assistancePageForm.unloadEvent.description')
+      );
+    } else {
+      unregisterUnloadEvent();
+    }
+  }, [formik.dirty]);
 
   const baseTextFieldProps = (
     field: keyof AssistanceRequest,
